@@ -1,0 +1,76 @@
+# Unleash, Flagsmith and GrowthBook for the middleware's integration tests. Start with tests/Integration/start-services.sh,
+# which also creates the flags the tests expect.
+name: kipchak-feature-flags-middleware
+
+services:
+  unleash-db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: unleash
+      POSTGRES_PASSWORD: unleash
+      POSTGRES_DB: unleash
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "unleash"]
+      interval: 2s
+      retries: 30
+
+  unleash:
+    image: unleashorg/unleash-server:8.2
+    ports: ["54243:4242"]
+    environment:
+      DATABASE_URL: postgres://unleash:unleash@unleash-db:5432/unleash
+      DATABASE_SSL: "false"
+      LOG_LEVEL: warn
+      # Tokens created at first start, so the tests need no setup in the UI.
+      INIT_CLIENT_API_TOKENS: "*:development.kipchak-test-client-token"
+      INIT_ADMIN_API_TOKENS: "*:*.kipchak-test-admin-token"
+    depends_on:
+      unleash-db:
+        condition: service_healthy
+
+  flagsmith-db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: flagsmith
+      POSTGRES_PASSWORD: flagsmith
+      POSTGRES_DB: flagsmith
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "flagsmith"]
+      interval: 2s
+      retries: 30
+
+  flagsmith:
+    image: flagsmith/flagsmith:2.286
+    ports: ["58001:8000"]
+    environment:
+      DATABASE_URL: postgresql://flagsmith:flagsmith@flagsmith-db:5432/flagsmith
+      DJANGO_ALLOWED_HOSTS: "*"
+      DJANGO_SECRET_KEY: kipchak-test-secret
+      ENVIRONMENT: local
+      ENABLE_ADMIN_ACCESS_USER_PASS: "true"
+      PREVENT_SIGNUP: "false"
+      DJANGO_SUPERUSER_EMAIL: admin@example.com
+      DJANGO_SUPERUSER_PASSWORD: kipchak-test-password
+      ALLOW_REGISTRATION_WITHOUT_INVITE: "true"
+    depends_on:
+      flagsmith-db:
+        condition: service_healthy
+
+  growthbook-db:
+    image: mongo:8
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: growthbook
+      MONGO_INITDB_ROOT_PASSWORD: growthbook
+
+  growthbook:
+    image: growthbook/growthbook:latest
+    ports: ["53101:3100"]
+    environment:
+      MONGODB_URI: mongodb://growthbook:growthbook@growthbook-db:27017/growthbook?authSource=admin
+      APP_ORIGIN: http://localhost:53000
+      API_HOST: http://localhost:53101
+      JWT_SECRET: kipchak-test-jwt-secret
+      ENCRYPTION_KEY: kipchak-test-encryption-key
+      NODE_ENV: production
+    depends_on:
+      - growthbook-db
