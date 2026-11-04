@@ -47,5 +47,23 @@
         "growthbook/growthbook": "^2.6",
         "phpunit/phpunit": "^12",
         "unleash/client": "^2.11"
+    },
+    "extra": {
+        "kipchak": {
+            "type": "middleware",
+            "config": "sample.config.php",
+            "configName": "kipchak.feature-flags.middleware.php",
+            "initialise": "\\Kipchak\\Middleware\\FeatureFlags\\FeatureFlags::initialise($app);",
+            "after": [],
+            "before": [
+                "kipchak/middleware-auth-hmac",
+                "kipchak/middleware-auth-jwks",
+                "kipchak/middleware-auth-jwt",
+                "kipchak/middleware-auth-key",
+                "kipchak/middleware-opentelemetry",
+                "kipchak/middleware-redaction"
+            ],
+            "docs": "https://kipchak.dev/docs/mw-feature-flags"
+        }
     }
 }
