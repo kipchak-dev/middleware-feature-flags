@@ -117,6 +117,26 @@ final class GateTest extends TestCase
         return json_decode((string) $response->getBody(), true)['data']['error'] ?? null;
     }
 
+    /**
+     * @return array{0: int, 1: string}
+     */
+    private static function envelopeStatus(ResponseInterface $response): array
+    {
+        return [$response->getStatusCode(), json_decode((string) $response->getBody(), true)['status']];
+    }
+
+    public function testRefusalsCarryTheStatusesMiddlewareErrorUses(): void
+    {
+        $this->assertSame([404, 'RESOURCE_NOT_FOUND'], self::envelopeStatus($this->dispatch(self::request(), $this->gate('off'))), 'The status a route that does not exist gets');
+        $this->assertSame([403, 'INSUFFICIENT_PRIVILEGES'], self::envelopeStatus($this->dispatch(self::request(), $this->gate('off', ['status' => 403]))));
+        $this->provider->down = true;
+        $this->assertSame([503, 'SERVER_ERROR'], self::envelopeStatus($this->dispatch(self::request(), $this->gate('on', config: ['on_error' => 'unavailable']))));
+
+        // Control: what 1.4 and earlier wrote, through Response::json().
+        $label = static fn (int $code): string => json_decode((string) \Kipchak\Core\Components\Http\Response::json(new \Slim\Psr7\Response(), '', $code)->getBody(), true)['status'];
+        $this->assertSame(['NOT FOUND', 'FORBIDDEN', 'SERVICE UNAVAILABLE'], [$label(404), $label(403), $label(503)]);
+    }
+
     public function testAFlagThatIsOnLetsTheRequestThrough(): void
     {
         $response = $this->dispatch(self::request(headers: ['x-client' => 'acme']), $this->gate('acme-only'));

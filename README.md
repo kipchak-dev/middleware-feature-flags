@@ -80,11 +80,15 @@ let it through.
 
 A request that is denied gets the standard Kipchak error envelope:
 
-| Status | `error` | When |
-|---|---|---|
-| 404 | `not_found` | The flag is off, and the gate's status is 404: the route looks as if it does not exist |
-| 403 | `feature_not_enabled` | The flag is off, and the gate's status is 403 |
-| 503 | `feature_flags_unavailable` | The flag cannot be evaluated, and `on_error` is `unavailable`; with `Retry-After: 5` |
+| Status | `status` | `error` | When |
+|---|---|---|---|
+| 404 | `RESOURCE_NOT_FOUND` | `not_found` | The flag is off, and the gate's status is 404: the route looks as if it does not exist |
+| 403 | `INSUFFICIENT_PRIVILEGES` | `feature_not_enabled` | The flag is off, and the gate's status is 403 |
+| 503 | `SERVER_ERROR` | `feature_flags_unavailable` | The flag cannot be evaluated, and `on_error` is `unavailable`; with `Retry-After: 5` |
+
+The `status` comes from kipchak/core's `ErrorStatus`, as kipchak/middleware-error writes it, so a gated 404 says what a
+missing route says. **Upgrading to 1.5:** it requires kipchak/core 3.18, and these statuses replace `NOT FOUND`,
+`FORBIDDEN` and `SERVICE UNAVAILABLE`. The `error` codes are unchanged.
 
 A flag the service does not have counts as off, and the first time a gate meets one the middleware logs a warning.
 Unleash does not report unknown flags, so there they are simply off.

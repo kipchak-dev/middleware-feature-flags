@@ -86,13 +86,13 @@ final class Guard
 
         return match ($outcome) {
             Requirement::PASS => null,
-            Requirement::UNAVAILABLE => Http\Response::json(new Response(), [
+            Requirement::UNAVAILABLE => Http\Response::error(new Response(), [
                 'error' => 'feature_flags_unavailable',
                 'message' => 'This feature cannot be checked right now. Try again shortly.',
             ], 503)->withHeader('Retry-After', '5'),
             default => $requirement->status === 403
-                ? Http\Response::json(new Response(), ['error' => 'feature_not_enabled', 'message' => 'This feature is not enabled for you.'], 403)
-                : Http\Response::json(new Response(), ['error' => 'not_found', 'message' => 'Not found.'], 404),
+                ? Http\Response::error(new Response(), ['error' => 'feature_not_enabled', 'message' => 'This feature is not enabled for you.'], 403)
+                : Http\Response::error(new Response(), ['error' => 'not_found', 'message' => 'Not found.'], 404),
         };
     }
 
